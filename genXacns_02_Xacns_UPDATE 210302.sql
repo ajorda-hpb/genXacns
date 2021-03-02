@@ -38,10 +38,9 @@ as
 ----The important part was adding specific tests for when a tar field IS NULL, 
 ----because SET ANSI_NULLS ON means SQL won't affirm that the absence of a value is, at least,
 ----NOT a specific value. Technically, its response is "I can't answer that, Dave." 
-----TODO: Edit the #wms stuff to use the wms_ils database instead of rILS_Data.
-----And don't forget to collate database_default while you're there! >.<
 --09/30/20: Added sh.ItemStatus = 1 to the Outbound Transfers query.
 ----Refactored the #wms stuff to use the wms_ils & wms_ar_ils databases. 
+--1/5/21: Completed edit of the #wms stuff to use the wms_ils database instead of rILS_Data.	
 -----------------------------------------------------------------------------------------------
 
 
