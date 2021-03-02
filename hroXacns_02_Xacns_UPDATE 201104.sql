@@ -126,11 +126,14 @@ select right('0000000000'+ convert(varchar(10), wms.INTERNAL_SHIPMENT_NUM), 10) 
 	,sum(isnull(case when ot.OrdCat = 'Push' then wms.Total_Qty end,0))[PshQty]
 	,sum(wms.Total_Qty)[ShpQty]
 from wms_ils..Shipment_Detail wms with(nolock)
-	left join OrdTypes ot on wms.Order_Type collate database_default = ot.OrdTy
-	inner join ReportsView..hroXacns_Items eq on right('00000000000000000000' + convert(varchar(20), wms.ITEM),20) collate database_default = eq.ItemCode
+	inner join wms_ils..Shipment_Header wmsh with(nolock)
+		on wms.INTERNAL_SHIPMENT_NUM = wmsh.INTERNAL_SHIPMENT_NUM
+	left join OrdTypes ot on wms.Order_Type = ot.OrdTy
+	inner join ReportsView..hroXacns_Items eq 
+		on right('00000000000000000000' + convert(varchar(20), wms.ITEM),20) collate database_default = eq.ItemCode
 	left join #NewItems ni on eq.ItemCode = ni.ItemCode
-where wms.Date_Time_Stamp < @eDate 
-	and (wms.Date_Time_Stamp >= @sDate or ni.ItemCode is not null)
+where wmsh.Actual_Ship_Date_Time < @eDate 
+	and (wmsh.Actual_Ship_Date_Time >= @sDate or ni.ItemCode is not null)
 group by right('0000000000'+ convert(varchar(10), wms.INTERNAL_SHIPMENT_NUM), 10) collate database_default 
 	,eq.ItemCode
 	,right('00000'+ convert(varchar(5), wms.SHIP_TO), 5) collate database_default 
@@ -142,11 +145,14 @@ select right('0000000000'+ convert(varchar(10), wms.INTERNAL_SHIPMENT_NUM), 10) 
 	,sum(isnull(case when ot.OrdCat = 'Push' then wms.Total_Qty end,0))[PshQty]
 	,sum(wms.Total_Qty)[ShpQty]
 from wms_ils..AR_Shipment_Detail wms with(nolock)
-	left join OrdTypes ot on wms.Order_Type collate database_default = ot.OrdTy
-	inner join ReportsView..hroXacns_Items eq on right('00000000000000000000' + convert(varchar(20), wms.ITEM),20) collate database_default = eq.itemCode
+	inner join wms_ils..AR_Shipment_Header wmsh with(nolock)
+		on wms.INTERNAL_SHIPMENT_NUM = wmsh.INTERNAL_SHIPMENT_NUM
+	left join OrdTypes ot on wms.Order_Type = ot.OrdTy
+	inner join ReportsView..hroXacns_Items eq 
+		on right('00000000000000000000' + convert(varchar(20), wms.ITEM),20) collate database_default = eq.itemCode
 	left join #NewItems ni on eq.ItemCode = ni.ItemCode
-where wms.Date_Time_Stamp < @eDate 
-	and (wms.Date_Time_Stamp >= @sDate or ni.ItemCode is not null)
+where wmsh.Actual_Ship_Date_Time < @eDate 
+	and (wmsh.Actual_Ship_Date_Time >= @sDate or ni.ItemCode is not null)
 group by right('0000000000'+ convert(varchar(10), wms.INTERNAL_SHIPMENT_NUM), 10) collate database_default 
 	,eq.ItemCode
 	,right('00000'+ convert(varchar(5), wms.SHIP_TO), 5) collate database_default 
@@ -158,11 +164,14 @@ select right('0000000000'+ convert(varchar(10), wms.INTERNAL_SHIPMENT_NUM), 10) 
 	,sum(isnull(case when ot.OrdCat = 'Push' then wms.Total_Qty end,0))[PshQty]
 	,sum(wms.Total_Qty)[ShpQty]
 from wms_ar_ils..AR_Shipment_Detail wms with(nolock)
-	left join OrdTypes ot on wms.Order_Type collate database_default = ot.OrdTy
-	inner join ReportsView..hroXacns_Items eq on right('00000000000000000000' + convert(varchar(20), wms.ITEM),20) collate database_default = eq.itemCode
+	inner join wms_ar_ils..AR_Shipment_Header wmsh with(nolock)
+		on wms.INTERNAL_SHIPMENT_NUM = wmsh.INTERNAL_SHIPMENT_NUM
+	left join OrdTypes ot on wms.Order_Type = ot.OrdTy
+	inner join ReportsView..hroXacns_Items eq 
+		on right('00000000000000000000' + convert(varchar(20), wms.ITEM),20) collate database_default = eq.itemCode
 	left join #NewItems ni on eq.ItemCode = ni.ItemCode
-where wms.Date_Time_Stamp < @eDate 
-	and (wms.Date_Time_Stamp >= @sDate or ni.ItemCode is not null)
+where wmsh.Actual_Ship_Date_Time < @eDate 
+	and (wmsh.Actual_Ship_Date_Time >= @sDate or ni.ItemCode is not null)
 group by right('0000000000'+ convert(varchar(10), wms.INTERNAL_SHIPMENT_NUM), 10) collate database_default 
 	,eq.ItemCode
 	,right('00000'+ convert(varchar(5), wms.SHIP_TO), 5) collate database_default 
