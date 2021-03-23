@@ -1,7 +1,7 @@
 USE [ReportsView]
 GO
 
-/****** Object:  StoredProcedure [dbo].[CDC_genXacns_UPDATE_daily_job]    Script Date: 2/24/2021 2:37:41 PM ******/
+/****** Object:  StoredProcedure [dbo].[CDC_genXacns_02_Xacns_UPDATE]    Script Date: 2/24/2021 2:37:41 PM ******/
 SET ANSI_NULLS ON
 GO
 
@@ -10,7 +10,7 @@ GO
 
 
 
-CREATE procedure [dbo].[CDC_genXacns_UPDATE_daily_job]
+CREATE procedure [dbo].[CDC_genXacns_02_Xacns_UPDATE]
 as
 
 ----sp version of file: genXacns UPDATE daily job 191203.sql ***12/04/19
@@ -39,8 +39,9 @@ as
 ----because SET ANSI_NULLS ON means SQL won't affirm that the absence of a value is, at least,
 ----NOT a specific value. Technically, its response is "I can't answer that, Dave." 
 --09/30/20: Added sh.ItemStatus = 1 to the Outbound Transfers query.
-----Refactored the #wms stuff to use the wms_ils & wms_ar_ils databases. 
+----Started refactoring the #wms stuff to use the wms_ils & wms_ar_ils databases. 
 --1/5/21: Completed edit of the #wms stuff to use the wms_ils database instead of rILS_Data.	
+-- 3/23/21: Took out all joins to the #Stores temp table... thinking it's not actually necessary.
 -----------------------------------------------------------------------------------------------
 
 
@@ -61,17 +62,17 @@ select @sDate[sDate],@eDate[eDate]
 into #dates
 
 
-----List of valid locations (stores)------------------
-------------------------------------------------------
-drop table if exists #Stores
-select distinct LocationNo[LocNo],LocationID[LocID] 
-into #Stores
-from ReportsData..Locations l with(nolock)
---Changed to not rely on edits every time a new store opens
-where l.LocationNo < '00150' --non-outlets, non-accrual locs
-	and l.[Status] = 'A' --active locations only
-create index idx_Stores_LocID on #Stores(LocID)
-create index idx_Stores_LocNo on #Stores(LocNo)
+-- ----List of valid locations (stores)------------------
+-- ------------------------------------------------------
+-- drop table if exists #Stores
+-- select distinct LocationNo[LocNo],LocationID[LocID] 
+-- into #Stores
+-- from ReportsData..Locations l with(nolock)
+-- --Changed to not rely on edits every time a new store opens
+-- where l.LocationNo < '00150' --non-outlets, non-accrual locs
+-- 	and l.[Status] = 'A' --active locations only
+-- create index idx_Stores_LocID on #Stores(LocID)
+-- create index idx_Stores_LocNo on #Stores(LocNo)
 
 
 ----List of NEW items (no records in genXacns)---------
@@ -197,7 +198,7 @@ SELECT sd.ItemCode
 into #ships_det   
 from ReportsData..ShipmentDetail sd with(nolock)
     inner join ReportsData..ShipmentHeader sh with(nolock) on sh.TransferID = sd.TransferID 
-	inner join #stores s on sh.ToLocationNo=s.LocNo
+	-- inner join #stores s on sh.ToLocationNo=s.LocNo
 	left  join #wms wms with(nolock) on sd.TransferID = wms.TransferID and sd.ItemCode = wms.ItemCode and sh.ToLocationNo = wms.Loc
 	left  join ReportsView..DrpShpSrCutoffDates_171219 ds on sh.ToLocationNo = ds.LocationNo
 	inner join ReportsView..genXacns_Items eq on sd.ItemCode = eq.itemCode
@@ -250,7 +251,7 @@ select srh.LocationNo[Loc]
 into #rcvds_det_OMFG    
 from ReportsData..SR_Header srh with(nolock)
 	inner join ReportsData..SR_Detail srd with(nolock) on srh.BatchID = srd.BatchID
-	inner join #stores s on srh.LocationNo=s.LocNo
+	-- inner join #stores s on srh.LocationNo=s.LocNo
 	inner join ReportsView..genXacns_Items eq on srd.ItemCode = eq.itemCode
 	left join #NewItems ni on eq.ItemCode = ni.ItemCode
 where srd.ItemCode < '00000000000050000000'  --exclude UPC codes shipped for system use
@@ -283,7 +284,7 @@ select srh.LocationNo[Loc]
 	,isnull(sum(srd.Qty),0)[RcvQty]
 from ReportsData..SR_Header_Historical srh with(nolock)
 	inner join ReportsData..SR_Detail_Historical srd with(nolock) on srh.BatchID = srd.BatchID 
-	inner join #stores s on srh.LocationNo=s.LocNo
+	-- inner join #stores s on srh.LocationNo=s.LocNo
 	inner join ReportsView..genXacns_Items eq on srd.ItemCode = eq.itemCode
 	left join #NewItems ni on eq.ItemCode = ni.ItemCode
 where srd.itemCode < '00000000000050000000'  --exclude UPC codes shipped for system use
@@ -423,7 +424,7 @@ from rHPB_Historical.dbo.SalesItemHistory sh with(nolock)
 	inner join rHPB_Historical.dbo.SalesHeaderHistory hh with(nolock)
 		on sh.LocationID = hh.LocationID and sh.XactionType = hh.XactionType
 			and sh.SalesXactionId = hh.SalesXactionID and sh.BusinessDate = hh.BusinessDate 
-	inner join #Stores loc on sh.LocationID = loc.LocID
+	-- inner join #Stores loc on sh.LocationID = loc.LocID
 	inner join ReportsView..genXacns_Items it on sh.ItemCode = it.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
 where sh.Status = 'A'
@@ -457,7 +458,7 @@ from isis..Order_Monsoon om with(nolock)
 	left join ofs..Order_Detail od with(nolock) on oh.OrderID = od.OrderID and od.Status in (1,4)
 		--Problem orders have ProblemStatusID not null
 		and (od.ProblemStatusID is null or od.ProblemStatusID = 0)	
-	inner join #Stores loc on isnull(od.LocationNo,fa.HPBLocationNo) = loc.LocNo
+	-- inner join #Stores loc on isnull(od.LocationNo,fa.HPBLocationNo) = loc.LocNo
 	inner join ReportsView..genXacns_Items it on right(om.SKU,20) = it.ItemCode
 	inner join ReportsData..ProductMaster pm with(nolock) on it.ItemCode = pm.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
@@ -492,7 +493,7 @@ from isis..Order_Monsoon om with(nolock)
 	left join ofs..Order_Detail od with(nolock) on oh.OrderID = od.OrderID and od.Status in (1,4)
 		--Problem orders have ProblemStatusID not null
 		and (od.ProblemStatusID is null or od.ProblemStatusID = 0)	
-	inner join #Stores loc on isnull(od.LocationNo,fa.HPBLocationNo) = loc.LocNo
+	-- inner join #Stores loc on isnull(od.LocationNo,fa.HPBLocationNo) = loc.LocNo
 	inner join ReportsView..genXacns_Items it on right(om.SKU,20) = it.ItemCode
 	inner join ReportsData..ProductMaster pm with(nolock) on it.ItemCode = pm.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
@@ -519,7 +520,7 @@ select fa.HPBLocationNo[Loc]
 --    select top 1000*
 from isis..Order_Omni od with(nolock)
 	inner join isis..App_Facilities fa with(nolock) on od.FacilityID = fa.FacilityID
-	inner join #Stores loc on fa.HPBLocationNo = loc.LocNo
+	-- inner join #Stores loc on fa.HPBLocationNo = loc.LocNo
 	inner join ReportsView..genXacns_Items it on right(od.SKU,20) = it.ItemCode
 	inner join ReportsData..ProductMaster pm with(nolock) on it.ItemCode = pm.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
@@ -550,7 +551,7 @@ select fa.HPBLocationNo[Loc]
 --    select top 1000*
 from isis..Order_Omni od with(nolock)
 	inner join isis..App_Facilities fa with(nolock) on od.FacilityID = fa.FacilityID
-	inner join #Stores loc on fa.HPBLocationNo = loc.LocNo
+	-- inner join #Stores loc on fa.HPBLocationNo = loc.LocNo
 	inner join ReportsView..genXacns_Items it on right(od.SKU,20) = it.ItemCode
 	inner join ReportsData..ProductMaster pm with(nolock) on it.ItemCode = pm.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
@@ -609,7 +610,7 @@ select sh.FromLocationNo
 	,NULL[mdSldVal]
 	,NULL[SldFee]
 from ReportsView..vw_StoreTransferDetail sh with(nolock)
-	inner join #Stores loc on sh.FromLocationNo = loc.LocNo
+	-- inner join #Stores loc on sh.FromLocationNo = loc.LocNo
 	inner join ReportsView..genXacns_Items it on sh.DIPSItemCode=it.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
 where sh.LastUpdateTime < @eDate 
@@ -639,7 +640,7 @@ select sia.LocationNo
 	,NULL[mdSldVal]
 	,NULL[SldFee]
 FROM ReportsData..SICC_Inventory_Adjustments sia with(nolock)
-	inner join #Stores loc on sia.LocationNo = loc.LocNo
+	-- inner join #Stores loc on sia.LocationNo = loc.LocNo
 	inner join ReportsView..genXacns_Items it on sia.ItemCode=it.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
 where sia.TransDate < @eDate 
@@ -663,7 +664,7 @@ select cia.LocationNo
 	,NULL[mdSldVal]
 	,NULL[SldFee]
 FROM ReportsData..CDC_Inventory_Adjustments cia with(nolock)
-	inner join #Stores loc on cia.LocationNo = loc.LocNo
+	-- inner join #Stores loc on cia.LocationNo = loc.LocNo
 	inner join ReportsView..genXacns_Items it on cia.ItemCode=it.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
 where cia.TransDate < @eDate 
@@ -1074,7 +1075,7 @@ END CATCH
 --Final catch-all Housekeeping--------------------------------------
 --------------------------------------------------------------------
 
-drop table if exists #stores
+-- drop table if exists #stores
 drop table if exists #NewItems
 drop table if exists #wms
 drop table if exists #ships_det
