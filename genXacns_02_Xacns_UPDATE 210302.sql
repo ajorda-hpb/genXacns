@@ -10,7 +10,7 @@ GO
 
 
 
-CREATE procedure [dbo].[CDC_genXacns_02_Xacns_UPDATE]
+CREATE OR ALTER procedure [dbo].[CDC_genXacns_02_Xacns_UPDATE]
 as
 
 ----sp version of file: genXacns UPDATE daily job 191203.sql ***12/04/19
@@ -406,7 +406,7 @@ create table #xacns
 --  declare @eDate datetime =(select max(eDate) from #dates), @sDate datetime =(select max(sDate) from #dates);
 insert into #xacns 
 --Item Sales...
-select loc.LocNo
+select l.LocationNo
 	,sh.ItemCode
 	,isnull(nullif(sh.SkuExtension,' '),0)[SkuExt]
 	,NULL[Shpmt]
@@ -425,6 +425,7 @@ from rHPB_Historical.dbo.SalesItemHistory sh with(nolock)
 		on sh.LocationID = hh.LocationID and sh.XactionType = hh.XactionType
 			and sh.SalesXactionId = hh.SalesXactionID and sh.BusinessDate = hh.BusinessDate 
 	-- inner join #Stores loc on sh.LocationID = loc.LocID
+	inner join ReportsData..Locations l on sh.LocationID = l.LocationID
 	inner join ReportsView..genXacns_Items it on sh.ItemCode = it.ItemCode
 	left join #NewItems ni on it.ItemCode = ni.ItemCode
 where sh.Status = 'A'
